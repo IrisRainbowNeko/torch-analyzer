@@ -4,7 +4,7 @@ from typing import Union, Dict, Iterable
 import torch
 from torch import nn
 
-from .base import ModelAnalyzer
+from .base import ModelAnalyzer, RecordFlowContext
 from .utils import Color
 from prettytable import PrettyTable
 
@@ -17,16 +17,17 @@ class ModuleIOContext:
 
     def _analyze_io(self, inputs: Union[Dict, Iterable]):
         info_dict = {}
+        extract_data = lambda v: (list(v.shape), v.max().item(), v.min().item(), v.mean().item())
         if isinstance(inputs, tuple) or isinstance(inputs, list):
             for i, v in enumerate(inputs):
                 if isinstance(v, torch.Tensor):
-                    info_dict[str(i)] = (list(v.shape), v.max().item(), v.min().item(), v.mean().item())
+                    info_dict[str(i)] = extract_data(v)
         elif isinstance(inputs, dict):
             for k, v in inputs.items():
                 if isinstance(v, torch.Tensor):
-                    info_dict[k] = (list(v.shape), v.max().item(), v.min().item(), v.mean().item())
+                    info_dict[k] = extract_data(v)
         elif isinstance(inputs, torch.Tensor):
-            info_dict['0'] = (list(inputs.shape), inputs.max().item(), inputs.min().item(), inputs.mean().item())
+            info_dict['0'] = extract_data(inputs)
         return info_dict
 
     def __enter__(self):
@@ -60,59 +61,33 @@ class ModelIOAnalysis(ModelAnalyzer):
         self.colors = [Color.CYAN, Color.GREEN, Color.YELLOW, Color.MAGENTA]
 
     def analyze(self, inputs, prefix='layer:'):
-        self.model(inputs)  # warmup
+        with RecordFlowContext(self.model) as module_flow:
+            self.model(inputs)  # warmup
 
         with ModuleIOContext(self.model) as module_io:
             out = self.model(inputs)
         self.module_io = module_io
+
+        flow = self.add_info_to_flow(module_flow.module_record)
+        return flow
+
+    def add_info_to_flow(self, flow):
+        new_flow = []
+        for i, item in enumerate(flow):
+            name, io_type, module = item
+            new_flow.append(item + (self.get_module_io(name, io_type, module),))
+        return new_flow
 
     def _format_info(self, info):
         if isinstance(info, float):
             return f'{info:.4f}'
         return info
 
-    def get_module_io(self, name, module):
-        info_list_i = [[f'{Color.RED}{k}{Color.RESET}'] + [f'{c_i}{{}}{self._format_info(item)}{Color.RESET}' for
-                                                               item, c_i in zip(v, self.colors)]
-                           for k, v in self.module_io.io_infos[f'{name}$i'].items()]
-        info_list_o = [[f'{Color.BLUE}{k}{Color.RESET}'] + [f'{c_i}{{}}{self._format_info(item)}{Color.RESET}' for
-                                                                 item, c_i in zip(v, self.colors)]
-                           for k, v in self.module_io.io_infos[f'{name}$o'].items()]
-        info_names = ['Layer', 'arg name']+self.info_names
+    def get_module_io(self, name, io_type, module):
+        '''
+        :return: {arg_name: [(name:str, info, color:str)]}
+        '''
+        info_dict = {k:[(iname, self._format_info(item), c_i) for iname, item, c_i in zip(self.info_names, v, self.colors)]
+                     for k, v in self.module_io.io_infos[f'{name}${io_type}'].items()}
 
-        return info_names, info_list_i, info_list_o
-
-    def show_table(self, model, info_call_back, **kwargs):
-        table = PrettyTable()
-        table.field_names = ['Layer', 'arg name']+self.info_names
-        for name, info in self.module_io.io_infos.items():
-            layer_name, io_type = name.split('$')
-            c_type = Color.RED if io_type=='i' else Color.BLUE
-            info_list_i = [[f'{c_type}{k}{Color.RESET}'] + [f'{c_i}{{}}{self._format_info(item)}{Color.RESET}' for
-                                                 item, c_i in zip(v, self.colors)] for k, v in info.items()]
-            self._proc_str_table(table, layer_name, info_list_i)
-
-        print(table)
-
-    def show_flow(self, model, info_call_back, **kwargs):
-        flow_str=''
-        intend = -2
-        for name, info in self.module_io.io_infos.items():
-            layer_name, io_type = name.split('$')
-            if len(layer_name)==0:
-                layer_name='all'
-            if io_type == 'i':
-                c_type = Color.RED
-                intend += 2
-                flow_str += ' ' * intend + f'{layer_name}:\n'
-            else:
-                c_type = Color.BLUE
-
-            info_list_i = [[f'{c_type}{k}{Color.RESET}'] + [f'{c_i}{{}}{self._format_info(item)}{Color.RESET}' for
-                                                 item, c_i in zip(v, self.colors)] for k, v in info.items()]
-            flow_str += self._proc_str_flow(info_list_i, ['arg name']+self.info_names, intend+2)
-
-            if io_type == 'o':
-                intend -= 2
-
-        print(flow_str)
+        return info_dict
