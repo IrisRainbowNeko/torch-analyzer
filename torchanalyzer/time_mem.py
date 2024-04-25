@@ -30,7 +30,7 @@ class ProfContext:
             module.forward = self.original_forwards[name]
 
 
-class ModelTimeMemAnalysis(ModelAnalyzer):
+class ModelTimeMemAnalyzer(ModelAnalyzer):
 
     def analyze(self, inputs, prefix='layer:') -> List[Tuple[str, str, nn.Module, List]]:
         with RecordFlowContext(self.model) as module_flow:

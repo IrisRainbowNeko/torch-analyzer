@@ -54,7 +54,7 @@ class ModuleIOContext:
             module.forward = self.original_forwards[name]
 
 
-class ModelIOAnalysis(ModelAnalyzer):
+class ModelIOAnalyzer(ModelAnalyzer):
     def __init__(self, model):
         super().__init__(model)
         self.info_names = ['shape', 'max', 'min', 'mean']

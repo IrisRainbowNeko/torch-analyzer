@@ -42,5 +42,15 @@ def format_time(time_ns):
     else:
         return f"{time_ns / 1e9:.2f} s"
 
+def format_flops(flops):
+    if flops < 1000:
+        return f"{flops}"
+    elif flops < 1e6:
+        return f"{flops / 1000:.2f} K"
+    elif flops < 1e9:
+        return f"{flops / 1e6:.2f} M"
+    else:
+        return f"{flops / 1e9:.2f} T"
+
 def format_percent(data):
     return f'{data * 100:.2f}%'
