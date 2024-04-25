@@ -6,7 +6,6 @@ from torch import nn
 
 from .base import ModelAnalyzer, RecordFlowContext
 from .utils import Color
-from prettytable import PrettyTable
 
 
 class ModuleIOContext:

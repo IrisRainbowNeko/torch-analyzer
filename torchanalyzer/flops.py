@@ -1,11 +1,12 @@
 from typing import List, Tuple
 
 from torch import nn
-from torch.profiler import profile, record_function, ProfilerActivity
+from torch.profiler import profile, record_function
 
 from .base import ModelAnalyzer, RecordFlowContext
-from .utils import Color, format_flops, format_time, format_percent
 from .flops_kernel import op_map
+from .utils import Color, format_flops, format_percent
+
 
 class ProfContext:
     def __init__(self, model, prefix='layer:'):

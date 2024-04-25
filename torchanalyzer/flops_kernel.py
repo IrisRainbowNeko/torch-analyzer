@@ -1,56 +1,7 @@
 import numpy as np
 import torch
-import torch.nn as nn
 from torch.nn import functional as F
-from torch.profiler import profile, record_function
-
-
-class SimpleCNN(nn.Module):
-    def __init__(self):
-        super(SimpleCNN, self).__init__()
-        self.conv1 = nn.Conv2d(1, 10, kernel_size=5, bias=False, padding=1)
-        self.pool = nn.MaxPool2d(2)
-        self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
-        self.fc1 = nn.Linear(320, 50)
-        self.fc2 = nn.Linear(50, 10, bias=False)
-
-    def attn(self, query, key, value, attn_bias=None, p=0.1):
-        scale = 1.0 / query.shape[-1] ** 0.5
-        query = query * scale - 1
-        query = query.transpose(1, 2)
-        key = key.transpose(1, 2)
-        value = value.transpose(1, 2)
-        attn = query @ key.transpose(-2, -1)
-        if attn_bias is not None:
-            attn = attn + attn_bias
-        attn = attn.softmax(-1)
-        attn = F.dropout(attn, p)
-        attn = attn @ value
-        return attn.transpose(1, 2)
-
-    def forward(self, x):
-        # x = self.pool(torch.relu(self.conv1(x)))
-        # with record_function('pool$i'):
-        #     pass
-        # x = self.pool(torch.relu(self.conv2(x)))
-        # with record_function('pool$o'):
-        #     pass
-        # x = torch.flatten(x, 1)
-        # x = torch.relu(self.fc1(x))
-        # x = self.fc2(x)
-
-        pp = torch.rand(1, 32, 8, 50).cuda()
-        with record_function('attn$i'):
-            pass
-        # x = self.fc2(pp)
-        # x = pp@self.fc2.weight.t()
-        #x = self.attn(pp, pp, pp)
-        x = torch.nn.functional.scaled_dot_product_attention(pp,pp,pp)
-        x = x.sum(dim=(1,2))
-        with record_function('attn$o'):
-            pass
-
-        return x
+from torch.profiler import profile
 
 
 def tensor_context(func):
@@ -213,7 +164,55 @@ op_map = {
 }
 
 if __name__ == '__main__':
-    from torchvision import models
+    from torch import nn
+    from torch.profiler import record_function
+    class SimpleCNN(nn.Module):
+        def __init__(self):
+            super(SimpleCNN, self).__init__()
+            self.conv1 = nn.Conv2d(1, 10, kernel_size=5, bias=False, padding=1)
+            self.pool = nn.MaxPool2d(2)
+            self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
+            self.fc1 = nn.Linear(320, 50)
+            self.fc2 = nn.Linear(50, 10, bias=False)
+
+        def attn(self, query, key, value, attn_bias=None, p=0.1):
+            scale = 1.0 / query.shape[-1] ** 0.5
+            query = query * scale - 1
+            query = query.transpose(1, 2)
+            key = key.transpose(1, 2)
+            value = value.transpose(1, 2)
+            attn = query @ key.transpose(-2, -1)
+            if attn_bias is not None:
+                attn = attn + attn_bias
+            attn = attn.softmax(-1)
+            attn = F.dropout(attn, p)
+            attn = attn @ value
+            return attn.transpose(1, 2)
+
+        def forward(self, x):
+            # x = self.pool(torch.relu(self.conv1(x)))
+            # with record_function('pool$i'):
+            #     pass
+            # x = self.pool(torch.relu(self.conv2(x)))
+            # with record_function('pool$o'):
+            #     pass
+            # x = torch.flatten(x, 1)
+            # x = torch.relu(self.fc1(x))
+            # x = self.fc2(x)
+
+            pp = torch.rand(1, 32, 8, 50).cuda()
+            with record_function('attn$i'):
+                pass
+            # x = self.fc2(pp)
+            # x = pp@self.fc2.weight.t()
+            # x = self.attn(pp, pp, pp)
+            x = torch.nn.functional.scaled_dot_product_attention(pp, pp, pp)
+            x = x.sum(dim=(1, 2))
+            with record_function('attn$o'):
+                pass
+
+            return x
+
     import timm
 
     #model = SimpleCNN().cuda()
