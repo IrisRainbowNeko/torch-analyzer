@@ -17,10 +17,10 @@ class ProfContext:
     def __enter__(self):
         def make_prof_hook(ori_forward, name):
             def prof_hook(*args, **kwargs):
-                with record_function(self.prefix + name+'$i'):
+                with record_function(self.prefix + name + '$i'):
                     pass
                 outputs = ori_forward(*args, **kwargs)
-                with record_function(self.prefix + name+'$o'):
+                with record_function(self.prefix + name + '$o'):
                     pass
                 return outputs
 
@@ -34,16 +34,13 @@ class ProfContext:
         for name, module in self.model.named_modules():
             module.forward = self.original_forwards[name]
 
+
 class ModelFlopsAnalyzer(ModelAnalyzer):
 
     def analyze(self, inputs) -> List[Tuple[str, str, nn.Module, List]]:
-        with RecordFlowContext(self.model) as module_flow:
-            self.model(inputs)  # warmup
-
-
-        with ProfContext(self.model, prefix=''):
-            with profile(record_shapes=True, use_cuda=True) as prof:
-                out = self.model(inputs)
+        with (RecordFlowContext(self.model) as module_flow, ProfContext(self.model, prefix=''),
+              profile(record_shapes=True, use_cuda=True) as prof):
+            out = self.model(inputs)
 
         self.flops_dict = self.summary_event(prof.events())
         self.flops_all = self.flops_dict['']
@@ -71,7 +68,7 @@ class ModelFlopsAnalyzer(ModelAnalyzer):
         new_flow = []
         for i, item in enumerate(flow):
             name, io_type, module = item
-            if io_type=='i':
+            if io_type == 'i':
                 new_flow.append(item + (self.get_flops(name, module),))
             else:
                 new_flow.append(item + (None,))
@@ -84,7 +81,7 @@ class ModelFlopsAnalyzer(ModelAnalyzer):
         flops = self.flops_dict[name]
 
         info_list = [
-            #('Layer', f'{format_time(event.cpu_time)}, {format_percent(event.cpu_time / self.cpu_time_all)}', None, Color.CYAN),
+            # ('Layer', f'{format_time(event.cpu_time)}, {format_percent(event.cpu_time / self.cpu_time_all)}', None, Color.CYAN),
             ('FLOPs', f'{format_flops(flops)}, {format_percent(flops / self.flops_all)}', Color.CYAN),
         ]
 

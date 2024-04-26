@@ -60,10 +60,7 @@ class ModelIOAnalyzer(ModelAnalyzer):
         self.colors = [Color.CYAN, Color.GREEN, Color.YELLOW, Color.MAGENTA]
 
     def analyze(self, inputs, prefix='layer:'):
-        with RecordFlowContext(self.model) as module_flow:
-            self.model(inputs)  # warmup
-
-        with ModuleIOContext(self.model) as module_io:
+        with ModuleIOContext(self.model) as module_io, RecordFlowContext(self.model) as module_flow:
             out = self.model(inputs)
         self.module_io = module_io
 
@@ -86,7 +83,9 @@ class ModelIOAnalyzer(ModelAnalyzer):
         '''
         :return: {arg_name: [(name:str, info, color:str)]}
         '''
-        info_dict = {k:[(iname, self._format_info(item), c_i) for iname, item, c_i in zip(self.info_names, v, self.colors)]
-                     for k, v in self.module_io.io_infos[f'{name}${io_type}'].items()}
+        info_dict = {
+            k: [(iname, self._format_info(item), c_i) for iname, item, c_i in zip(self.info_names, v, self.colors)]
+            for k, v in self.module_io.io_infos[f'{name}${io_type}'].items()
+        }
 
         return info_dict

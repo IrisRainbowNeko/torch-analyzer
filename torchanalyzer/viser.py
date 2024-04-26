@@ -21,9 +21,11 @@ def repr_patch(self):
         child_lines.append('(' + key + '): ' + mod_str)
 
     if getattr(self, '_info_input', None) is not None:
-        extra_lines.insert(0, self._info_input)
+        lines = self._info_input.split('\n')
+        extra_lines = lines + extra_lines
     if getattr(self, '_info_output', None) is not None:
-        child_lines.append(self._info_output)
+        lines = self._info_output.split('\n')
+        child_lines += lines
 
     lines = extra_lines + child_lines
 
