@@ -42,13 +42,13 @@ class ModelFlopsAnalyzer(ModelAnalyzer):
               profile(record_shapes=True, use_cuda=True) as prof):
             out = self.model(inputs)
 
-        self.flops_dict = self.summary_event(prof.events())
+        self.flops_dict = self.summary_events(prof.events())
         self.flops_all = self.flops_dict['']
 
         flow = self.add_info_to_flow(module_flow.module_record)
         return flow
 
-    def summary_event(self, events):
+    def summary_events(self, events):
         flops_dict = {}
         blocks = []
         for event in events:
