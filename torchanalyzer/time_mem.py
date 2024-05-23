@@ -24,7 +24,7 @@ class BackContext(Function):
             return grad_outputs, None
 
 class ProfContext:
-    def __init__(self, model, prefix='layer:', func_name='forward', with_backward=True):
+    def __init__(self, model, prefix='layer:', func_name='forward', with_backward=False):
         self.model = model
         self.prefix = prefix
         self.func_name = func_name
