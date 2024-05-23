@@ -12,7 +12,7 @@ with open('requirements.txt', encoding='utf8') as f:
 setuptools.setup(
     name="torch-analyzer",
     py_modules=["torch-analyzer"],
-    version="0.2",
+    version="1.0",
     author="Ziyi Dong",
     author_email="dzy7eu7d7@gmail.com",
     description="A torch model analyzer",
