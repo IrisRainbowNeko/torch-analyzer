@@ -31,6 +31,35 @@ class ProfContext:
             setattr(module, self.func_name, self.original_forwards[name])
 
 
+class BackwardProfContext:
+    def __init__(self, model, prefix='layer_back:'):
+        self.model = model
+        self.prefix = prefix
+        self.hook_handles = []
+
+    def __enter__(self):
+        def make_hooks(module, name):
+            def pre_hook(m, grad_out, name=name):
+                with record_function(f'{self.prefix}pre:{name}'):
+                    pass
+
+            def post_hook(m, grad_in, grad_out, name=name):
+                with record_function(f'{self.prefix}post:{name}'):
+                    pass
+
+            module: nn.Module
+            handle_pre = module.register_full_backward_pre_hook(pre_hook)
+            handle_post = module.register_full_backward_hook(post_hook)
+            self.hook_handles.append(handle_pre)
+            self.hook_handles.append(handle_post)
+
+        for name, module in self.model.named_modules():
+            make_hooks(module, name)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        for handle in self.hook_handles:
+            handle.remove()
+
 class ModelTimeMemAnalyzer(ModelAnalyzer):
 
     def analyze(self, inputs, prefix='layer:', with_init=True) -> List[Tuple[str, str, nn.Module, List]]:
@@ -47,7 +76,7 @@ class ModelTimeMemAnalyzer(ModelAnalyzer):
         with RecordFlowContext(self.model) as module_flow:
             self.model(inputs)  # warmup
 
-        with ProfContext(self.model, prefix=prefix):
+        with ProfContext(self.model, prefix=prefix, func_name='forward'):
             with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], profile_memory=True) as prof:
                 out = self.model(inputs)
 
@@ -79,24 +108,18 @@ class ModelTimeMemAnalyzer(ModelAnalyzer):
 
         time = [
             ('CPU', f'{format_time(event.cpu_time)}, {format_percent(event.cpu_time / self.cpu_time_all)}', Color.CYAN),
-            ('CUDA', f'{format_time(event.cuda_time)}, {format_percent(event.cuda_time / self.cuda_time_all)}',
-             Color.GREEN),
+            ('CUDA', f'{format_time(event.cuda_time)}, {format_percent(event.cuda_time / self.cuda_time_all)}', Color.GREEN),
         ]
 
         mem = [
-            ('CPU',
-             f'{format_memory(event.cpu_memory_usage)}, {format_percent(event.cpu_memory_usage / self.cpu_mem_all)}',
-             Color.YELLOW),
-            ('CUDA',
-             f'{format_memory(event.cuda_memory_usage)}, {format_percent(event.cuda_memory_usage / self.cuda_mem_all)}',
-             Color.MAGENTA),
+            ('CPU', f'{format_memory(event.cpu_memory_usage)}, {format_percent(event.cpu_memory_usage / self.cpu_mem_all)}', Color.YELLOW),
+            ('CUDA', f'{format_memory(event.cuda_memory_usage)}, {format_percent(event.cuda_memory_usage / self.cuda_mem_all)}', Color.MAGENTA),
         ]
 
         if hasattr(self, 'filtered_events_to'):
             event_to = self.filtered_events_to[name]
             # mem.append(('CPU(init)', f'{format_memory(event_to.cpu_memory_usage)}, {format_percent(event_to.cpu_memory_usage / self.cpu_mem_all_to)}', Color.YELLOW))
-            mem.append(('CUDA(init)',
-                        f'{format_memory(event_to.cuda_memory_usage)}, {format_percent(event_to.cuda_memory_usage / self.cuda_mem_all_to)}',
-                        Color.BLUE))
+            mem_rate = event_to.cpu_memory_usage / self.cpu_mem_all_to
+            mem.append(('CUDA(init)', f'{format_memory(event_to.cuda_memory_usage)}, {format_percent(mem_rate)}', Color.BLUE))
 
         return {'Time': time, 'Memory': mem}
