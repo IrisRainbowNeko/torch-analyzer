@@ -77,3 +77,12 @@ Show with flow style:
 from torchanalyzer import FlowViser
 FlowViser().show(model, info)
 ```
+
+### Backward Analyze
+Analyze run time and memory of each layer in backward:
+```python
+from torchanalyzer import ModelTimeMemAnalyzer
+
+analyzer = ModelTimeMemAnalyzer(model)
+info = analyzer.analyze(inputs, with_backward=True)
+```
