@@ -132,14 +132,18 @@ op_map = {
     'aten::tanh': flops_tanh,
     'aten::tanh_': flops_tanh,
     'aten::max_pool2d': flops_pool,
+    'aten::adaptive_avg_pool2d': flops_single_ops,
     'aten::batch_norm': flops_batch_norm,
     'aten::layer_norm': flops_batch_norm,
 
     'aten::scaled_dot_product_attention': flops_attention,
     # mat ops
     'aten::addmm': flops_addmm,
+    'aten::addmm_': flops_addmm,
     'aten::mm': flops_mm,
+    'aten::mm_': flops_mm,
     'aten::bmm': flops_bmm,
+    'aten::bmm_': flops_bmm,
     # number ops
     'aten::add': flops_elem_ops,
     'aten::add_': flops_elem_ops,
@@ -164,8 +168,9 @@ op_map = {
     'aten::_softmax': flops_softmax,
     'aten::sigmoid': flops_sigmoid,
     # memory ops
-    'aten::transpose': flops_single_ops,
-    'aten::reshape': flops_single_ops,
+    #'aten::transpose': flops_single_ops,
+    #'aten::reshape': flops_single_ops,
+    #'aten::resolve_conj': flops_single_ops,
 }
 
 if __name__ == '__main__':
@@ -205,29 +210,58 @@ if __name__ == '__main__':
             # x = torch.relu(self.fc1(x))
             # x = self.fc2(x)
 
-            pp = torch.rand(1, 32, 8, 50).cuda()
             with record_function('attn$i'):
                 pass
             # x = self.fc2(pp)
             # x = pp@self.fc2.weight.t()
             # x = self.attn(pp, pp, pp)
-            x = torch.nn.functional.scaled_dot_product_attention(pp, pp, pp)
-            x = x.sum(dim=(1, 2))
+            x = torch.nn.functional.scaled_dot_product_attention(x, x, x)
+            x = x.sum(dim=(1, 2)).tanh()
             with record_function('attn$o'):
                 pass
 
             return x
 
+    from dcn import DeformableConv2d
+    class MNISTClassifier(nn.Module):
+        def __init__(self, deformable=True):
+            super(MNISTClassifier, self).__init__()
+
+            self.conv1 = nn.Conv2d(3, 32, kernel_size=3, stride=1, padding=1, bias=True)
+            self.conv2 = nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1, bias=True)
+            self.conv3 = nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1, bias=True)
+            conv = nn.Conv2d if deformable == False else DeformableConv2d
+            self.conv4 = conv(32, 32, kernel_size=3, stride=1, padding=1, bias=True)
+            self.conv5 = conv(32, 32, kernel_size=3, stride=1, padding=1, bias=True)
+
+            self.pool = nn.MaxPool2d(2)
+            self.gap = nn.AdaptiveAvgPool2d((1, 1))
+            self.fc = nn.Linear(32, 10)
+
+        def forward(self, x):
+            x = torch.relu(self.conv1(x))
+            x = self.pool(x)  # [14, 14]
+            x = torch.relu(self.conv2(x))
+            x = self.pool(x)  # [7, 7]
+            x = torch.relu(self.conv3(x))
+            x = torch.relu(self.conv4(x))
+            x = torch.relu(self.conv5(x))
+            x = self.gap(x)
+            x = x.flatten(start_dim=1)
+            x = self.fc(x)
+            return x
+
     import timm
 
-    #model = SimpleCNN().cuda()
+    device = 'cpu'
+    #model = SimpleCNN().to(device)
+    model = MNISTClassifier().to(device)
     #model = models.resnet18().cuda()
-    model = timm.create_model('vit_base_patch16_224').cuda()
-    inputs = torch.randn(1, 3, 224, 224).cuda()
+    #model = timm.create_model('vit_base_patch16_224').to(device)
+    inputs = torch.randn(1, 3, 224, 224).to(device)
 
     with profile(record_shapes=True, use_cuda=True) as prof:
         model(inputs)
-    F.gelu()
 
     # 遍历每个事件
     for event in prof.events():

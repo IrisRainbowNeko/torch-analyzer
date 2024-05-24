@@ -61,7 +61,7 @@ class ProfContext:
 
 class ModelTimeMemAnalyzer(ModelAnalyzer):
 
-    def analyze(self, inputs, prefix='layer:', with_init=True, with_backward=True) -> List[Tuple[str, str, nn.Module, List]]:
+    def analyze(self, inputs, prefix='layer:', with_init=True, with_backward=False) -> List[Tuple[str, str, nn.Module, List]]:
         if with_init:
             self.model.to('cpu')
             with ProfContext(self.model, prefix=prefix, func_name='_apply'):

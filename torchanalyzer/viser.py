@@ -135,7 +135,7 @@ class FlowViser(Viser):
                 flow_str += ' ' * intend + f'{arg_color}{arg_name}{Color.RESET}: ' + ' | '.join(info_i) + '\n'
         return flow_str
 
-    def show(self, model: nn.Module, flow: List[Tuple[str, str, nn.Module, Dict]], **kwargs):
+    def show(self, model: nn.Module, flow: List[Tuple[str, str, nn.Module, Dict]], with_module_name=True, **kwargs):
         flow_str = ''
         intend = -2
         for name, io_type, module, info_dict in flow:
@@ -143,7 +143,10 @@ class FlowViser(Viser):
                 layer_name = 'all' if len(name) == 0 else name
                 if io_type == 'i':
                     intend += 2
-                    flow_str += ' ' * intend + f'{layer_name}:\n'
+                    if with_module_name:
+                        flow_str += ' ' * intend + f'{layer_name} {Color.GREEN}({type(module).__name__}){Color.RESET}:\n'
+                    else:
+                        flow_str += ' ' * intend + f'{layer_name}:\n'
 
                 flow_str += self._proc_str(info_dict, io_type, intend + 2)
 
