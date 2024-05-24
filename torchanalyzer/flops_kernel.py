@@ -102,6 +102,9 @@ def flops_gelu(input_shapes, concrete_inputs):
 def flops_silu(input_shapes, concrete_inputs):
     return 5*np.prod(input_shapes[0])
 
+def flops_tanh(input_shapes, concrete_inputs):
+    return 8*np.prod(input_shapes[0])
+
 # -----------------------tensor ops-----------------------
 def flops_sum(input_shapes, concrete_inputs):
     s_in = np.array(input_shapes[0])
@@ -124,8 +127,10 @@ op_map = {
     'aten::relu_': flops_single_ops,
     'aten::gelu': flops_gelu,
     'aten::gelu_': flops_gelu,
-    'aten::silu': flops_gelu,
-    'aten::silu_': flops_gelu,
+    'aten::silu': flops_silu,
+    'aten::silu_': flops_silu,
+    'aten::tanh': flops_tanh,
+    'aten::tanh_': flops_tanh,
     'aten::max_pool2d': flops_pool,
     'aten::batch_norm': flops_batch_norm,
     'aten::layer_norm': flops_batch_norm,

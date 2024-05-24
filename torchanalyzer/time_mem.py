@@ -89,15 +89,15 @@ class ModelTimeMemAnalyzer(ModelAnalyzer):
             self.events_back = self.summary_events(prof_back.events())
 
             events_back_all = self.events_back['']
-            self.back_cpu_time_all = events_back_all[0]
-            self.back_cuda_time_all = events_back_all[1]
-            self.back_cpu_mem_all = events_back_all[2]
-            self.back_cuda_mem_all = events_back_all[3]
+            self.back_cpu_time_all = max(1, events_back_all[0])
+            self.back_cuda_time_all = max(1, events_back_all[1])
+            self.back_cpu_mem_all = max(1, events_back_all[2])
+            self.back_cuda_mem_all = max(1, events_back_all[3])
 
         self.filtered_events = {event.key[len(prefix):]: event for event in prof.key_averages() if
                                 event.key.startswith(prefix)}
-        self.cpu_time_all = self.filtered_events[''].cpu_time
-        self.cuda_time_all = self.filtered_events[''].cuda_time
+        self.cpu_time_all = max(1, self.filtered_events[''].cpu_time)
+        self.cuda_time_all = max(1, self.filtered_events[''].cuda_time)
         self.cpu_mem_all = max(1, self.filtered_events[''].cpu_memory_usage)
         self.cuda_mem_all = max(1, self.filtered_events[''].cuda_memory_usage)
 
