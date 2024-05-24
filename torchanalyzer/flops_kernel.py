@@ -6,8 +6,8 @@ from torch.profiler import profile
 
 def tensor_context(func):
     def wrapper(*args, **kwargs):
-        args = [(np.array(x) if isinstance(x, list) else x) for x in args]
-        kwargs = {k: (np.array(v) if isinstance(v, list) else v) for k, v in kwargs}
+        args = [(np.array(x, dtype=np.int64) if isinstance(x, list) else x) for x in args]
+        kwargs = {k: (np.array(v, dtype=np.int64) if isinstance(v, list) else v) for k, v in kwargs}
         return func(*args, **kwargs)
 
     return wrapper
@@ -120,7 +120,7 @@ def flops_std(input_shapes, concrete_inputs):
 # -----------------------memory ops-----------------------
 
 
-op_map = {
+flops_op_map = {
     # model ops
     'aten::conv2d': flops_convnd,
     'aten::relu': flops_single_ops,
@@ -255,9 +255,9 @@ if __name__ == '__main__':
 
     device = 'cpu'
     #model = SimpleCNN().to(device)
-    model = MNISTClassifier().to(device)
+    #model = MNISTClassifier().to(device)
     #model = models.resnet18().cuda()
-    #model = timm.create_model('vit_base_patch16_224').to(device)
+    model = timm.create_model('vit_base_patch16_224').to(device)
     inputs = torch.randn(1, 3, 224, 224).to(device)
 
     with profile(record_shapes=True, use_cuda=True) as prof:
@@ -269,5 +269,5 @@ if __name__ == '__main__':
             continue
         print(
             f"{event.name} - CUDA time: {event.cuda_time}, Input shapes: {event.input_shapes}, input:{event.concrete_inputs}")
-        if event.name in op_map:
-            print(f"{event.name} - FLOPs: {op_map[event.name](event.input_shapes, event.concrete_inputs)}")
+        if event.name in flops_op_map:
+            print(f"{event.name} - FLOPs: {flops_op_map[event.name](event.input_shapes, event.concrete_inputs)}")

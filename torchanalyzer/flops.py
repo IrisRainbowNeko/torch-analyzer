@@ -4,7 +4,8 @@ from torch import nn
 from torch.profiler import profile, record_function
 
 from .base import ModelAnalyzer, RecordFlowContext
-from .flops_kernel import op_map
+from .flops_kernel import flops_op_map
+from .memops_kernel import memops_op_map
 from .utils import Color, format_flops, format_percent
 
 
@@ -42,13 +43,16 @@ class ModelFlopsAnalyzer(ModelAnalyzer):
               profile(record_shapes=True, use_cuda=True) as prof):
             out = self.model(inputs)
 
-        self.flops_dict = self.summary_events(prof.events())
+        self.flops_dict = self.summary_events(prof.events(), flops_op_map)
         self.flops_all = self.flops_dict['']
+
+        self.memops_dict = self.summary_events(prof.events(), memops_op_map)
+        self.memops_all = self.memops_dict['']
 
         flow = self.add_info_to_flow(module_flow.module_record)
         return flow
 
-    def summary_events(self, events):
+    def summary_events(self, events, op_map):
         flops_dict = {}
         blocks = []
         for event in events:
@@ -79,10 +83,12 @@ class ModelFlopsAnalyzer(ModelAnalyzer):
         :return: [(name:str, info, color:str)]
         '''
         flops = self.flops_dict[name]
+        memops = self.memops_dict[name]
 
         info_list = [
             # ('Layer', f'{format_time(event.cpu_time)}, {format_percent(event.cpu_time / self.cpu_time_all)}', None, Color.CYAN),
             ('FLOPs', f'{format_flops(flops)}, {format_percent(flops / self.flops_all)}', Color.CYAN),
+            ('MemOPs', f'{format_flops(memops)}, {format_percent(memops / self.memops_all)}', Color.MAGENTA),
         ]
 
         return {'_one_': info_list}
