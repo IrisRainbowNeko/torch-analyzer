@@ -2,6 +2,8 @@ from typing import List, Tuple, Dict
 
 import torch
 from torch import nn
+from torch.autograd import Function
+from torch.profiler import record_function
 
 
 class RecordFlowContext:
@@ -30,6 +32,18 @@ class RecordFlowContext:
         for name, module in self.model.named_modules():
             module.forward = self.original_forwards[name]
 
+# 方便在backward中记录Module区间
+class BackContext(Function):
+    @staticmethod
+    def forward(ctx, x, name):
+        ctx.constant = name
+        return x
+
+    @staticmethod
+    def backward(ctx, grad_outputs):
+        name = ctx.constant
+        with record_function(name):
+            return grad_outputs, None
 
 class ModelAnalyzer:
     def __init__(self, model):

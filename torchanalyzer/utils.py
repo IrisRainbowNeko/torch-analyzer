@@ -50,8 +50,10 @@ def format_flops(flops):
         return f"{flops / 1000:.2f} K"
     elif flops < 1e9:
         return f"{flops / 1e6:.2f} M"
+    elif flops < 1e12:
+        return f"{flops / 1e9:.2f} G"
     else:
-        return f"{flops / 1e9:.2f} T"
+        return f"{flops / 1e12:.2f} T"
 
 def format_percent(data):
     return f'{data * 100:.2f}%'

@@ -5,23 +5,11 @@ import torch
 from torch import nn
 from torch.profiler import profile, record_function, ProfilerActivity
 
-from .base import ModelAnalyzer, RecordFlowContext
+from .base import ModelAnalyzer, RecordFlowContext, BackContext
 from .utils import Color, format_memory, format_time, format_percent
 
-from torch.autograd import Function
 
-# 方便在backward中记录Module区间
-class BackContext(Function):
-    @staticmethod
-    def forward(ctx, x, name):
-        ctx.constant = name
-        return x
 
-    @staticmethod
-    def backward(ctx, grad_outputs):
-        name = ctx.constant
-        with record_function(name):
-            return grad_outputs, None
 
 class ProfContext:
     def __init__(self, model, prefix='layer:', func_name='forward', with_backward=False):
