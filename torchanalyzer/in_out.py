@@ -34,7 +34,7 @@ class ModuleIOContext:
             arg_names = inspect.getfullargspec(ori_forward).args
 
             def io_hook(*args, **kwargs):
-                arg_dict = {arg_names[i + 1]: v for i, v in enumerate(args)}  # skip self
+                arg_dict = {(arg_names[i + 1] if i + 1 < len(arg_names) else i): v for i, v in enumerate(args)}  # skip self
                 arg_dict.update(kwargs)
                 self.io_infos[f'{name}$i'] = self._analyze_io(arg_dict)
                 outputs = ori_forward(*args, **kwargs)
