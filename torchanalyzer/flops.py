@@ -59,7 +59,8 @@ class ModelFlopsAnalyzer(ModelAnalyzer):
         self.memops_dict = self.summary_events(prof.events(), memops_op_map)
         self.memops_all = self.memops_dict['']
 
-        self.param_dict = self.count_params(self.model, {})
+        self.param_dict = {}
+        self.count_params(self.model, self.param_dict)
         self.param_all = self.param_dict['']
 
         flow = self.add_info_to_flow(module_flow.module_record)
