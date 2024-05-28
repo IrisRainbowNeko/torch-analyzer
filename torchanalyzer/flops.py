@@ -38,10 +38,15 @@ class ProfContext:
 
 class ModelFlopsAnalyzer(ModelAnalyzer):
 
-    def analyze(self, inputs) -> List[Tuple[str, str, nn.Module, List]]:
+    def analyze(self, input_args, input_kwargs=None) -> List[Tuple[str, str, nn.Module, List]]:
+        if input_kwargs is None:
+            input_kwargs = {}
+        if not isinstance(input_args, (tuple, list)):
+            input_args = [input_args]
+
         with (RecordFlowContext(self.model) as module_flow, ProfContext(self.model, prefix=''),
               profile(record_shapes=True, use_cuda=True) as prof):
-            out = self.model(inputs)
+            out = self.model(*input_args, **input_kwargs)
 
         self.flops_dict = self.summary_events(prof.events(), flops_op_map)
         self.flops_all = self.flops_dict['']

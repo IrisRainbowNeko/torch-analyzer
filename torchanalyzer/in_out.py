@@ -59,9 +59,14 @@ class ModelIOAnalyzer(ModelAnalyzer):
         self.info_names = ['shape', 'max', 'min', 'mean']
         self.colors = [Color.CYAN, Color.GREEN, Color.YELLOW, Color.MAGENTA]
 
-    def analyze(self, inputs, prefix='layer:'):
+    def analyze(self, input_args, input_kwargs=None, prefix='layer:'):
+        if input_kwargs is None:
+            input_kwargs = {}
+        if not isinstance(input_args, (tuple, list)):
+            input_args = [input_args]
+
         with ModuleIOContext(self.model) as module_io, RecordFlowContext(self.model) as module_flow:
-            out = self.model(inputs)
+            out = self.model(*input_args, **input_kwargs)
         self.module_io = module_io
 
         flow = self.add_info_to_flow(module_flow.module_record)

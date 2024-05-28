@@ -61,24 +61,31 @@ class ProfContext:
 
 class ModelTimeMemAnalyzer(ModelAnalyzer):
 
-    def analyze(self, inputs, prefix='layer:', with_init=True, with_backward=False) -> List[Tuple[str, str, nn.Module, List]]:
+    def analyze(self, input_args, input_kwargs=None, prefix='layer:', with_init=True, with_backward=False) -> List[Tuple[str, str, nn.Module, List]]:
+        if input_kwargs is None:
+            input_kwargs = {}
+        if not isinstance(input_args, (tuple, list)):
+            input_args = [input_args]
+
+        device = self._get_device(input_args, input_kwargs)
         if with_init:
             self.model.to('cpu')
             with ProfContext(self.model, prefix=prefix, func_name='_apply'):
                 with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], profile_memory=True) as prof_to:
-                    self.model.to(inputs.device)
+                    self.model.to(device)
             self.filtered_events_to = {event.key[len(prefix):]: event for event in prof_to.key_averages() if
                                        event.key.startswith(prefix)}
             self.cpu_mem_all_to = max(1, self.filtered_events_to[''].cpu_memory_usage)
             self.cuda_mem_all_to = max(1, self.filtered_events_to[''].cuda_memory_usage)
 
         with RecordFlowContext(self.model) as module_flow:
-            self.model(inputs)  # warmup
+            self.model(*input_args, **input_kwargs)  # warmup
 
-        inputs.requires_grad = True # for backward
+        self._enable_grad(input_args) # for backward
+        self._enable_grad(input_kwargs) # for backward
         with ProfContext(self.model, prefix=prefix, func_name='forward', with_backward=with_backward):
             with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA], profile_memory=True) as prof:
-                out = self.model(inputs)
+                out = self.model(*input_args, **input_kwargs)
 
         if with_backward:
             out = out.mean()

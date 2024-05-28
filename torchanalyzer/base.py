@@ -1,5 +1,6 @@
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 
+import torch
 from torch import nn
 
 
@@ -34,7 +35,23 @@ class ModelAnalyzer:
     def __init__(self, model):
         self.model = model
 
-    def analyze(self, inputs) -> List[Tuple[str, str, nn.Module, List]]:
+    def _get_device(self, input_args:Tuple, input_kwargs:Dict):
+        for arg in input_args:
+            if isinstance(arg, torch.Tensor):
+                return arg.device
+
+        for k, v in input_kwargs.items():
+            if isinstance(v, torch.Tensor):
+                return v.device
+        return torch.device('cpu')
+
+    def _enable_grad(self, inputs):
+        if isinstance(inputs, (tuple, list)):
+            return [(input.requires_grad_(True) if isinstance(input, torch.Tensor) else input) for input in inputs]
+        else:
+            return {k:(v.requires_grad_(True) if isinstance(v, torch.Tensor) else v) for k, v in inputs.items()}
+
+    def analyze(self, input_args, input_kwargs) -> List[Tuple[str, str, nn.Module, List]]:
         raise NotImplementedError
 
     def _prof_extra_repr(self, info_input, info_output, ori_func):
