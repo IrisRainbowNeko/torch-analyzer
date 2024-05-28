@@ -108,6 +108,8 @@ def flops_tanh(input_shapes, concrete_inputs):
 # -----------------------tensor ops-----------------------
 def flops_sum(input_shapes, concrete_inputs):
     s_in = np.array(input_shapes[0])
+    if len(s_in)==0:
+        return 1
     s_in[concrete_inputs[1]] -= 1
     return s_in.prod()
 
