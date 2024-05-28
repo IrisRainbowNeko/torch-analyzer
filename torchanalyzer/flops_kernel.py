@@ -175,6 +175,9 @@ flops_op_map = {
     #'aten::resolve_conj': flops_single_ops,
 }
 
+def add_op(op_name, flops_counter):
+    flops_counter[op_name] = flops_counter
+
 if __name__ == '__main__':
     from torch import nn
     from torch.profiler import record_function
