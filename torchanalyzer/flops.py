@@ -44,6 +44,8 @@ class ModelFlopsAnalyzer(ModelAnalyzer):
         if not isinstance(input_args, (tuple, list)):
             input_args = [input_args]
 
+        self.model(*input_args, **input_kwargs)
+
         with (RecordFlowContext(self.model) as module_flow, ProfContext(self.model, prefix=''),
               profile(record_shapes=True, use_cuda=True) as prof):
             out = self.model(*input_args, **input_kwargs)
