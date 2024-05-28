@@ -69,7 +69,7 @@ def flops_addmm(input_shapes, concrete_inputs):
 def flops_mm(input_shapes, concrete_inputs):
     @tensor_context
     def _flops(s_mat1, s_mat2, *no_use):
-        return 2 * s_mat1[0] * s_mat1[1] * s_mat2[1]
+        return 2 * torch.prod(s_mat1) * s_mat2[1]
 
     return _flops(*input_shapes)
 
