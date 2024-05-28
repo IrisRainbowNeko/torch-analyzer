@@ -57,7 +57,7 @@ def flops_attention(input_shapes, concrete_inputs):
 # -----------------------mat ops-----------------------
 def flops_addmm(input_shapes, concrete_inputs):
     @tensor_context
-    def _flops(s_v, s_mat1, s_mat2):
+    def _flops(s_v, s_mat1, s_mat2, *no_use):
         if len(s_v) > 0:
             return 2 * s_mat1[0] * s_mat1[1] * s_mat2[1] + s_mat1[0] * s_mat2[1]
         else:
@@ -68,14 +68,14 @@ def flops_addmm(input_shapes, concrete_inputs):
 
 def flops_mm(input_shapes, concrete_inputs):
     @tensor_context
-    def _flops(s_mat1, s_mat2):
+    def _flops(s_mat1, s_mat2, *no_use):
         return 2 * s_mat1[0] * s_mat1[1] * s_mat2[1]
 
     return _flops(*input_shapes)
 
 def flops_bmm(input_shapes, concrete_inputs):
     @tensor_context
-    def _flops(s_mat1, s_mat2):
+    def _flops(s_mat1, s_mat2, *no_use):
         return s_mat1[0] * 2 * s_mat1[1] * s_mat1[2] * s_mat2[2]
 
     return _flops(*input_shapes)
