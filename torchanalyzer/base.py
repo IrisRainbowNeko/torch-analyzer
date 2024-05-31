@@ -3,7 +3,6 @@ from typing import List, Tuple, Dict
 import torch
 from torch import nn
 from torch.autograd import Function
-from torch.profiler import record_function
 
 
 class RecordFlowContext:
@@ -32,24 +31,26 @@ class RecordFlowContext:
         for name, module in self.model.named_modules():
             module.forward = self.original_forwards[name]
 
+
 # 方便在backward中记录Module区间
-class BackContext(Function):
+class BackRecoder(Function):
     @staticmethod
-    def forward(ctx, x, name):
-        ctx.constant = name
+    def forward(ctx, x, func):
+        ctx.constant = func
         return x
 
     @staticmethod
     def backward(ctx, grad_outputs):
-        name = ctx.constant
-        with record_function(name):
-            return grad_outputs, None
+        func = ctx.constant
+        func()
+        return grad_outputs, None
+
 
 class ModelAnalyzer:
     def __init__(self, model):
         self.model = model
 
-    def _get_device(self, input_args:Tuple, input_kwargs:Dict):
+    def _get_device(self, input_args: Tuple, input_kwargs: Dict):
         for arg in input_args:
             if isinstance(arg, torch.Tensor):
                 return arg.device
@@ -63,7 +64,7 @@ class ModelAnalyzer:
         if isinstance(inputs, (tuple, list)):
             return [(input.requires_grad_(True) if isinstance(input, torch.Tensor) else input) for input in inputs]
         else:
-            return {k:(v.requires_grad_(True) if isinstance(v, torch.Tensor) else v) for k, v in inputs.items()}
+            return {k: (v.requires_grad_(True) if isinstance(v, torch.Tensor) else v) for k, v in inputs.items()}
 
     def analyze(self, input_args, input_kwargs) -> List[Tuple[str, str, nn.Module, List]]:
         raise NotImplementedError
