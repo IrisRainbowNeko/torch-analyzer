@@ -47,7 +47,7 @@ def flops_attention(input_shapes, concrete_inputs):
     @tensor_context
     def _flops(s_q, s_k, s_v):
         f_mat = 2*s_q.prod()*s_k[2]
-        qk = s_k.prod() + f_mat + s_q[:3].prod()*s_k[2]
+        qk = s_k.prod() + f_mat # k/sqrt(h) + qk
         softmax = flops_softmax([[*s_q[:3], s_k[2]]], [None, -1])
         att_v = f_mat # [b,h,lq,lk]x[b,h,lv,d]
         return int(qk+softmax+att_v)

@@ -1,6 +1,5 @@
-from typing import List, Tuple, Iterable
+from typing import List, Tuple
 
-import numpy as np
 import torch
 from torch import nn
 from torch.profiler import profile, record_function, ProfilerActivity
