@@ -13,7 +13,7 @@ class OpTreeAnalyzer:
                 event_stack.pop()
                 pad = pad[:-2]
 
-            print(f'{pad}{event.name} - CUDA time: {event.cuda_time}, CUDA mem:{event.cuda_memory_usage}/{event.self_cuda_memory_usage}'
+            print(f'{pad}{event.name} - CUDA time: {event.cuda_time}, CUDA mem:{event.cuda_memory_usage}/{event.self_cuda_memory_usage}, '
                   f'cpu time:{event.cpu_time}, cpu mem:{event.cpu_memory_usage}/{event.self_cpu_memory_usage}')
 
             pad+='  '
